@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streamed Response</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #inputText {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+      #sendButton {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #output {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+        white-space: pre-wrap;
+        font-family: monospace;
+        line-height: 1.5;
+        word-break: keep-all;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ollama3.2:1b running locally</h1>
+    <textarea
+      id="inputText"
+      rows="4"
+      placeholder="Type your question here..."
+    ></textarea
+    ><br />
+    <button id="sendButton">Send</button>
+    <div id="output"></div>
+
+    <script>
+      document.getElementById("sendButton").addEventListener("click", () => {
+        const inputText = document.getElementById("inputText").value;
+        const outputDiv = document.getElementById("output");
+
+        // Clear the previous output
+        outputDiv.textContent = "";
+
+        if (!inputText.trim()) {
+          outputDiv.textContent = "Please enter some text!";
+          return;
+        }
+
+        // Start a fetch request with streaming support
+        fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input_text: inputText }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+
+            // Use a reader to process the streamed response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            function readStream() {
+              reader.read().then(({ done, value }) => {
+                if (done) {
+                  return; // End of stream
+                }
+                // Decode the chunk and append it to the output
+                const chunk = decoder
+                  .decode(value, { stream: true })
+                  .replace(/\n/g, " ");
+                outputDiv.textContent += chunk; // Append the text without adding a new line
+                readStream(); // Continue reading
+              });
+            }
+
+            readStream();
+          })
+          .catch((error) => {
+            outputDiv.textContent = `Error: ${error.message}`;
+          });
+      });
+    </script>
+  </body>
+</html>
