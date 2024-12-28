@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 import subprocess
 from ollama import chat
 from ollama import ChatResponse
@@ -44,6 +44,11 @@ def predict():
         stream_model_response(input_text),
         content_type='text/plain'
     )
+
+# Route to serve the index.html file
+@app.route('/')
+def index():
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Start the Flask app
 if __name__ == '__main__':
